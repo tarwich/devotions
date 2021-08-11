@@ -1,0 +1,5 @@
+.history
+.parcel-cache
+.vscode
+node_modules
+dist
