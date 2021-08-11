@@ -1,38 +1,58 @@
-const { app, BrowserWindow } = require('electron');
+// @ts-check
+const puppeteer = require('puppeteer');
+const clipboard = require('clipboardy');
 
-function createWindow() {
-  // Create the browser window.
-  const mainWindow = new BrowserWindow({
-    width: 1920,
-    height: 1080,
-    // webPreferences: {
-    //   preload: path.join(__dirname, 'preload.js'),
-    // },
-  });
+async function main() {
+  // Form the search phrase
+  const searchPhrase = process.argv
+    .slice(2)
+    .join(' ')
+    .replace(/\s+/g, '+')
+    .replace(':', '.');
 
-  // and load the index.html of the app.
-  mainWindow.loadFile('dist/index.html');
+  const browser = await puppeteer.launch({ headless: true });
+  // Create a browser page
+  const page = await browser.newPage();
+  await page.goto(
+    `https://www.biblegateway.com/passage/?search=${searchPhrase}&version=NIV;NET`
+  );
+  // Page should be loaded. Grab the passage information
+  const passage = await (
+    await page.$('.passage-display .dropdown-display-text')
+  ).evaluate((n) => n.textContent);
+  const link = `https://biblegateway.com/passage/search?=${passage
+    .replace(/\s+/g, '+')
+    .replace(':', '.')}`;
+  console.log(`${passage}\n${link}`);
+  const translations = [];
 
-  // Open the DevTools.
-  // mainWindow.webContents.openDevTools()
+  // Enumerate translations
+  for (const translationNode of await page.$$('[data-translation]')) {
+    const translation = await translationNode.evaluate((n) =>
+      n.getAttribute('data-translation')
+    );
+
+    const text = await translationNode.evaluate((node) =>
+      [...node.querySelectorAll('.passage-text p .text')]
+        .map((e) =>
+          [...e.childNodes]
+            .filter((n) => n.nodeType === Node.TEXT_NODE)
+            .map((n) => n.textContent)
+            .join('')
+        )
+        .join(' ')
+        .replace(/\s+/, ' ')
+    );
+    console.log(`\n\n${translation}\n${text}`);
+    translations.push({ translation, text });
+  }
+  clipboard.writeSync(
+    `${passage}\n${link}\n\n${translations.map(
+      (t) => `\n\n${t.translation}\n${t.text}`
+    )}`
+  );
+
+  browser.close();
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
-  createWindow();
-
-  app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
-});
-
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
-app.on('window-all-closed', function () {
-  if (process.platform !== 'darwin') app.quit();
-});
+main().catch(console.error);
