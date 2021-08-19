@@ -20,7 +20,7 @@ async function main() {
   const passage = await (
     await page.$('.passage-display .dropdown-display-text')
   ).evaluate((n) => n.textContent);
-  const link = `https://biblegateway.com/passage/search?=${passage
+  const link = `https://biblegateway.com/passage/?search=${passage
     .replace(/\s+/g, '+')
     .replace(':', '.')}`;
   console.log(`${passage}\n${link}`);
