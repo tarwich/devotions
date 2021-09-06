@@ -47,9 +47,9 @@ async function main() {
     translations.push({ translation, text });
   }
   clipboard.writeSync(
-    `${passage}\n${link}\n\n${translations.map(
-      (t) => `\n\n${t.translation}\n${t.text}`
-    )}`
+    `${passage}\n${link}\n\n${translations
+      .map((t) => `\n${t.translation}\n${t.text}`)
+      .join('\n')}`
   );
 
   browser.close();
