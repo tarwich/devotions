@@ -4,17 +4,15 @@ const clipboard = require('clipboardy');
 
 async function main() {
   // Form the search phrase
-  const searchPhrase = process.argv
-    .slice(2)
-    .join(' ')
-    .replace(/\s+/g, '+')
-    .replace(':', '.');
-
+  const searchPhrase = process.argv.slice(2).join(' ');
   const browser = await puppeteer.launch({ headless: true });
   // Create a browser page
   const page = await browser.newPage();
   await page.goto(
-    `https://www.biblegateway.com/passage/?search=${searchPhrase}&version=NIV;NET`
+    `https://www.biblegateway.com/passage/?${new URLSearchParams({
+      search: searchPhrase,
+      // version: 'NIV;NLT'
+    })}`
   );
   // Page should be loaded. Grab the passage information
   const passage = await (
@@ -47,7 +45,7 @@ async function main() {
     translations.push({ translation, text });
   }
   clipboard.writeSync(
-    `${passage}\n${link}\n\n${translations
+    `${passage}\n${link}\n${translations
       .map((t) => `\n${t.translation}\n${t.text}`)
       .join('\n')}`
   );
